@@ -1,0 +1,6 @@
+github.com/dmfed/conf v0.4.0 h1:H41I0f/2lZWZlecCI3qSd2lCW3BCBoiWpY73T6yQuSg=
+github.com/dmfed/conf v0.4.0/go.mod h1:+qrdGz0hPMCV93pu4zT4rVetycJyv4QkC1XYS6PIBic=
+github.com/dmfed/termtools v1.0.0 h1:u4d93gVzVi1PtJ6f2OHWIKK9gdQ1p3cQ5szgFwxmfas=
+github.com/dmfed/termtools v1.0.0/go.mod h1:FDduERfmqdT2tuRzaPTAxex2VA9a1XOtNMoCRvYEdTQ=
+golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c h1:VwygUrnw9jn88c4u8GD3rZQbqrP/tgas88tPUbBxQrk=
+golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

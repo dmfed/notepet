@@ -1,0 +1,9 @@
+[Unit]
+Description=Notepet Server
+Wants=network-online.service
+After=network-online.service
+
+[Service]
+ExecStart=/usr/local/bin/notepetsrv -ip 10.0.0.10 -port 10000
+Type=simple
+

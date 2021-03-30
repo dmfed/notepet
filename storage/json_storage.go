@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -110,7 +109,7 @@ func (st *JSONFileStorage) Put(note notepet.Note) (notepet.NoteID, error) {
 	t := time.Now()
 	note.TimeStamp = t
 	note.LastEdited = t
-	note.ID = generateID(note)
+	note.ID = note.GenerateID()
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	st.Notes = append(st.Notes, note)
@@ -223,12 +222,4 @@ func (st *JSONFileStorage) reindex() {
 	for index, note := range st.Notes {
 		st.idToIndex[note.ID] = index
 	}
-}
-
-func generateID(note notepet.Note) notepet.NoteID {
-	sum := sha256.New()
-	sum.Write([]byte(note.Title))
-	sum.Write([]byte(note.TimeStamp.String()))
-	s := string(sum.Sum(nil))
-	return notepet.NoteID(fmt.Sprintf("%x", s))
 }

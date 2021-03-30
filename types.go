@@ -1,6 +1,7 @@
 package notepet
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"strings"
 	"time"
@@ -26,6 +27,14 @@ type Note struct {
 	Sticky     bool      `json:"sticky,omitempty"`
 	TimeStamp  time.Time `json:"timestamp,omitempty"`
 	LastEdited time.Time `json:"lastedited,omitempty"`
+}
+
+func (n Note) GenerateID() NoteID {
+	sum := sha256.New()
+	sum.Write([]byte(n.Title))
+	sum.Write([]byte(n.TimeStamp.String()))
+	s := string(sum.Sum(nil))
+	return NoteID(fmt.Sprintf("%x", s))
 }
 
 func (n Note) String() (out string) {

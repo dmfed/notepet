@@ -106,7 +106,7 @@ func TestStoragePutsAndGetsSameBack(t *testing.T) {
 	}
 }
 
-func TestStorageExtractsNotesByIDs(t *testing.T) {
+func TestStorageExtractsNotesByIDsAndSearches(t *testing.T) {
 	if _, err := os.Stat(samplesfile); os.IsNotExist(err) {
 		file, err := os.Create(samplesfile)
 		if err != nil {
@@ -134,6 +134,16 @@ func TestStorageExtractsNotesByIDs(t *testing.T) {
 		}
 		if n[0].Title != note.Title || n[0].Body != note.Body {
 			fmt.Println("Get returned wrong note")
+			t.Fail()
+		}
+	}
+	for _, note := range sim.Notes {
+		if _, err := st.Search(note.Title); err != nil {
+			fmt.Println("Failed to search existing note by Title")
+			t.Fail()
+		}
+		if _, err := st.Search(note.Body); err != nil {
+			fmt.Println("Failed to search existing note by Body")
 			t.Fail()
 		}
 	}

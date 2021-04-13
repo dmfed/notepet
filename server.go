@@ -117,6 +117,7 @@ func (ah *APIHandler) authenticate(h http.HandlerFunc) http.HandlerFunc {
 		token := r.Header.Get("Notepet-Token")
 		if token == "" {
 			http.Error(w, "401 Unauthorized", http.StatusUnauthorized)
+			return
 		}
 		if _, ok := ah.Tokens[token]; !ok {
 			http.Error(w, "403 Forbidden", http.StatusForbidden)
@@ -158,18 +159,18 @@ func allowMethod(h http.HandlerFunc, method string) http.HandlerFunc {
 func (ah *APIHandler) handleAPINew(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "could not read request body", http.StatusBadRequest)
+		http.Error(w, "400 could not read request body", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 	note, err := bytesToNote(data)
 	if err != nil {
-		http.Error(w, "could not parse request body", http.StatusBadRequest)
+		http.Error(w, "400 could not parse request body", http.StatusBadRequest)
 		return
 	}
 	id, err := ah.Storage.Put(note)
 	if err != nil {
-		http.Error(w, "500", http.StatusInternalServerError)
+		http.Error(w, "500 error putting note", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(201)
@@ -188,7 +189,7 @@ func (ah *APIHandler) handleAPIGet(w http.ResponseWriter, r *http.Request) {
 		notes, err = ah.Storage.Get(NoteID(reqid))
 	}
 	if err != nil {
-		http.Error(w, ErrNoNotesFound.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -199,18 +200,18 @@ func (ah *APIHandler) handleAPIGet(w http.ResponseWriter, r *http.Request) {
 func (ah *APIHandler) handleAPIUpd(w http.ResponseWriter, r *http.Request) {
 	reqid := r.URL.Query().Get("id")
 	if reqid == "" {
-		http.Error(w, "no id requested", http.StatusBadRequest)
+		http.Error(w, "400 no id requested", http.StatusBadRequest)
 		return
 	}
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "could not read request body", http.StatusBadRequest)
+		http.Error(w, "400 could not read request body", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 	note, err := bytesToNote(data)
 	if err != nil {
-		http.Error(w, "could not parse request body", http.StatusBadRequest)
+		http.Error(w, "400 could not parse request body", http.StatusBadRequest)
 		return
 	}
 	newID, err := ah.Storage.Upd(NoteID(reqid), note)
@@ -225,26 +226,26 @@ func (ah *APIHandler) handleAPIUpd(w http.ResponseWriter, r *http.Request) {
 func (ah *APIHandler) handleAPIDel(w http.ResponseWriter, r *http.Request) {
 	reqid := r.URL.Query().Get("id")
 	if reqid == "" {
-		http.Error(w, "no id requested", http.StatusBadRequest)
+		http.Error(w, "400 no id requested", http.StatusBadRequest)
 		return
 	}
 	if err := ah.Storage.Del(NoteID(reqid)); err != nil {
-		http.Error(w, "could not delete "+reqid, http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(200)
-	w.Write([]byte("deleted " + reqid))
+	w.Write([]byte("200 note deleted " + reqid))
 }
 
 func (ah *APIHandler) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 	searchquery := r.URL.Query().Get("q")
 	if searchquery == "" {
-		http.Error(w, "no search query provided", http.StatusBadRequest)
+		http.Error(w, "400 no search query provided", http.StatusBadRequest)
 		return
 	}
 	notelist, err := ah.Storage.Search(searchquery)
 	if err != nil || len(notelist) == 0 {
-		http.Error(w, "404 nothing found", http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

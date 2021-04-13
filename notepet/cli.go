@@ -214,7 +214,7 @@ func editNote(n notepet.Note, conf *notepetConfig) (note notepet.Note, err error
 	// TODO: Handle errors here ?
 	notebytes := []byte(convertNoteToEditableString(n))
 	tmpFile.Write(notebytes)
-	tmpFile.Close()
+	tmpFile.Close() // Closing and reopening (leep file open and use Seek(0, 0)?)
 	err = runEditor(tmpFile.Name(), conf.editor)
 	if err != nil {
 		return

@@ -2,18 +2,22 @@ Notepet API
 
 
 Endpoint         	                Method	Response if OK	Action
-/api?action=new 	                PUT 	201 Created	    creates note 
-/api?action=get 	                GET 	200 OK		    gets all notes
-/api?action=get&id={id} 	        GET 	200 OK 		    gets note with {id}
-/api?action=get&start={id}&end={id} GET     200 OK          gets notes ranging from start to end
-/api?action=upd&id={id}             POST 	202 Accepted	updates note with {id}
-/api?action=del&id={id}	            DELETE	200 OK		    deletes note with {id}
-/api?action=search&q={query}        GET	    200 OK		    search for notes
+/api?action=new 	                PUT 	201 Created	creates note 
+/api?action=get 	                GET 	200 OK		gets all notes
+/api?action=get&id={id} 	        GET 	200 OK 		gets note with {id}
+/api?action=upd&id={id}             	POST 	202 Accepted	updates note with {id}
+/api?action=del&id={id}	            	DELETE	200 OK		deletes note with {id}
+/api?action=search&q={query}        	GET	200 OK		search for notes
 
 Requests to above endpoints should bear "Notepet-Token: $token"
 header field. The response should be 401 Unauthorized in case token 
 in the header is missing or 403 Forbidden if token does not check out.
 In case of wrong methods the api should return 405 method not allowed.
+
+Requests with action=new, action=upd must hold valid json with body of note. 
+
+If request processed correctly the body of response holds json with requested 
+item(s). 
 
 
 API returns notes in JSON in the body of the http response.

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -142,6 +143,10 @@ func processDelCommand(st notepet.Storage, conf *notepetConfig) error {
 		return prnt.Errorf("invalid index")
 	}
 	note := notes[index-1]
+	printNote(note, conf)
+	if !promptUserYorN("Delete this note?") {
+		return nil
+	}
 	err = st.Del(note.ID)
 	if err == nil {
 		prnt.Printf("Successfully deleted note with id %v\n", note.ID)
@@ -160,6 +165,10 @@ func processEditCommand(st notepet.Storage, conf *notepetConfig) error {
 	}
 	note := notes[index-1]
 	oldID := note.ID
+	printNote(note, conf)
+	if !promptUserYorN("Edit this note?") {
+		return nil
+	}
 	note, err = editNote(note, conf)
 	if err != nil {
 		prnt.Println("Could not edit note.")
@@ -351,6 +360,24 @@ func parseSliceArg(input string, maxindex int) (start, end int, err error) {
 		return
 	}
 	return
+}
+
+func promptUserYorN(question string) (result bool) {
+	var answer string
+	for {
+		prnt.Print(question, " y/n: ")
+		fmt.Scan(&answer)
+		answer = strings.ToLower(answer)
+		switch answer {
+		case "y", "yes":
+			result = true
+			return
+		case "n", "no":
+			return
+		default:
+			prnt.Println("\nPlease type \"yes\" or \"no\"...")
+		}
+	}
 }
 
 func setupPrinters() {

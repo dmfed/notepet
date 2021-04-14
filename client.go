@@ -131,6 +131,7 @@ func (ac *APIClient) Search(query string) ([]Note, error) {
 	q := url.Query()
 	q.Add("action", "search")
 	q.Add("q", query)
+	url.RawQuery = q.Encode()
 	req, _ := http.NewRequest("GET", url.String(), nil)
 	req.Header.Add("Notepet-Token", ac.Token)
 	resp, err := ac.HTTPClient.Do(req)

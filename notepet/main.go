@@ -9,7 +9,7 @@ import (
 	"github.com/dmfed/termtools"
 )
 
-const version string = `notepet v0.1.0
+const version string = `notepet v0.3.0
 Copyright 2021 by Dmitry Fedotov
 Redistributable under MIT license`
 
@@ -51,7 +51,7 @@ func main() {
 		flagVersion    = flag.Bool("version", false, "Print version and exit")
 		flagIP         = flag.String("ip", "", "ip address to connect to")
 		flagPort       = flag.String("port", "", "port to connect to")
-		flagUpdateIDs  = flag.Bool("generate", false, "recalculate IDs of al notes")
+		// flagUpdateIDs  = flag.Bool("generate", false, "recalculate IDs of all notes")
 	)
 	flag.Usage = displayHelpLong
 	flag.Parse()
@@ -83,10 +83,14 @@ func main() {
 		return
 	}
 	defer storage.Close()
-	if *flagUpdateIDs {
+	/* if *flagUpdateIDs {
 		prnt.Println("updatings ids...")
-		notes, _ := storage.Get()
-		prnt.Printf("got %v  notes", len(notes))
+		notes, err := storage.Get()
+		if err != nil {
+			prnt.Println("could not fetch notes from storage. Exiting...")
+			return
+		}
+		prnt.Printf("got %v notes", len(notes))
 		for i := len(notes) - 1; i >= 0; i-- {
 			prnt.Println("updating note", i)
 			if err := storage.Del(notes[i].ID); err != nil {
@@ -99,7 +103,7 @@ func main() {
 			}
 		}
 		return
-	}
+	} */
 	if err := runCLI(storage, conf); err != nil {
 		prnt.Println(err)
 	}

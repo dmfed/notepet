@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -9,6 +10,10 @@ import (
 	"github.com/dmfed/notepet"
 	"github.com/dmfed/notepet/storage"
 )
+
+const version string = `notepet v0.1.0
+Copyright 2021 by Dmitry Fedotov
+Redistributable under MIT license`
 
 // ReadTokensFile accepts filename to parse. It reads
 // file and adds each non-empty line found as token.
@@ -39,8 +44,14 @@ func main() {
 		flagCertFile    = flag.String("cert", "", "certificate file to use")
 		flagKeyFile     = flag.String("key", "", "key file to use")
 		flagAppToken    = flag.String("t", "", "provide token via command line")
+		flagVersion     = flag.Bool("v", false, "print version and exit")
 	)
 	flag.Parse()
+
+	if *flagVersion {
+		fmt.Println(version)
+		return
+	}
 
 	var st notepet.Storage
 	st, err := storage.OpenJSONFileStorage(*flagStorageFile)

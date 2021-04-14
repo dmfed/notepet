@@ -341,18 +341,21 @@ func parseSliceArg(input string, maxindex int) (start, end int, err error) {
 			start = num - 1
 		}
 		if num, err := strconv.Atoi(indices[1]); err == nil {
-			end = num
+			end = num - 1
 		}
 	} else {
 		if num, err := strconv.Atoi(indices[0]); err == nil {
 			start, end = num-1, num
 		}
 	}
-	if start >= end && end == 0 { // e.g. user supplied "3:""
-		end = maxindex
+	if start < 0 { // allow Python style slicing e.g.  "-3:"
+		start = maxindex + start + 1
 	}
-	if end < 0 { // allow Python style slicing e.g. 1:-3
-		end = maxindex + end
+	if end < 0 { // e.g. user supplied "1:-3"
+		end = maxindex + end + 1
+	}
+	if start >= end && end == 0 { // e.g. user supplied "3:" or "-3:"
+		end = maxindex
 	}
 	if start < 0 || start >= maxindex || start >= end || end < start+1 || end > maxindex {
 		err = prnt.Errorf("error: invalid index or slice supplied %v:%v", start, end)

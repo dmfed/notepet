@@ -74,11 +74,25 @@ func (n Note) StringLong() (out string) {
 
 //Storage interface represents any type of storage for Note objects.
 type Storage interface {
+	// Get signature is intended to accept zero or one NoteID
+	// if more than one NoteID is specified the method may or may not
+	// return second and subsequent ids depending on implementation
 	Get(...NoteID) ([]Note, error)
+	// Put accepts Note and should return NoteID if Note has been
+	// successfully added to Storage
 	Put(Note) (NoteID, error)
+	// Upd accepts Note and should return NoteID if Note has been
+	// successfully modified in Storage
 	Upd(NoteID, Note) (NoteID, error)
+	// Del deletes Note with specified NoteID. If delete was successful
+	// it should return nil, error otherwise.
 	Del(NoteID) error
+	// Search looks up Notes containing specified string. It should
+	// return error if no Notes have been found or if other error occured.
 	Search(string) ([]Note, error)
+	// Close should be used when Storage is no longer needed (to close
+	// network connection, flush file to disk etc.)
+	// If Close has not been called data is not guaranteed to be consistent.
 	Close() error
 	ExportJSON() ([]byte, error) // debugging. Remove this.
 }

@@ -40,9 +40,7 @@ func displayHelpLong() { //TODO: write proper help
 }
 
 func main() {
-	homedir, _ := os.UserHomeDir() // Handle error here?
-	// TODO: differentiate path for Linux, MacOS
-	// TODO: check for config in user's $HOME directory (separate function?)
+	homedir, _ := os.UserHomeDir()
 	configpath := filepath.Join(homedir, ".notepet.conf")
 	var (
 		flagConfigFile = flag.String("conf", configpath, "Config file to use")

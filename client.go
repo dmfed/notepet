@@ -8,8 +8,8 @@ import (
 	"net/url"
 )
 
-// APIClient represents client fetching notes from notepet server
-// It implements Storage interface
+// APIClient represents http client fetching notes from notepet server.
+// It implements notepet.Storage interface.
 type APIClient struct {
 	Token      string
 	HTTPClient *http.Client
@@ -18,36 +18,25 @@ type APIClient struct {
 
 // NewAPIClient returns instance of APIClient configured
 // to send requests to specified ip address
-func NewAPIClient(ip, port, token string) (Storage, error) {
-	var c APIClient
-	c.Token = token
-	c.URL = url.URL{Scheme: "http",
+func NewAPIClient(ip, port, apptoken string) (Storage, error) {
+	var ac APIClient
+	ac.Token = apptoken
+	ac.HTTPClient = &http.Client{}
+	ac.URL = url.URL{Scheme: "http",
 		Host: ip + ":" + port,
 		Path: "/api"}
-	c.HTTPClient = &http.Client{}
-	return &c, nil
+	return &ac, nil
 }
 
 // Get implements Storage
 func (ac *APIClient) Get(ids ...NoteID) ([]Note, error) {
-	url := ac.URL
-	q := url.Query()
-	q.Add("action", "get")
+	var req *http.Request
 	if len(ids) > 0 {
-		q.Add("id", ids[0].String())
+		req = ac.formRequest("GET", map[string]string{"action": "get", "id": ids[0].String()}, nil)
+	} else {
+		req = ac.formRequest("GET", map[string]string{"action": "get"}, nil)
 	}
-	url.RawQuery = q.Encode()
-	req, _ := http.NewRequest("GET", url.String(), nil)
-	req.Header.Add("Notepet-Token", ac.Token)
-	resp, err := ac.HTTPClient.Do(req)
-	if err != nil {
-		return []Note{}, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return []Note{}, fmt.Errorf("server returned: %v", resp.Status)
-	}
-	data, err := io.ReadAll(resp.Body)
+	data, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
 		return []Note{}, err
 	}
@@ -56,119 +45,86 @@ func (ac *APIClient) Get(ids ...NoteID) ([]Note, error) {
 
 // Put implements Storage
 func (ac *APIClient) Put(n Note) (NoteID, error) {
-	url := ac.URL
-	q := url.Query()
-	q.Add("action", "new")
-	url.RawQuery = q.Encode()
-	data := noteToBytes(n)
-	body := io.NopCloser(bytes.NewReader(data))
-	req, _ := http.NewRequest("PUT", url.String(), body)
-	req.Header.Add("Notepet-Token", ac.Token)
-	resp, err := ac.HTTPClient.Do(req)
+	body := bytes.NewReader(noteToBytes(n))
+	req := ac.formRequest("PUT", map[string]string{"action": "new"}, body)
+	data, err := ac.doRequest(req, http.StatusCreated)
 	if err != nil {
 		return BadNoteID, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		return BadNoteID, fmt.Errorf("server returned: %v", resp.Status)
-	}
-	id, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return BadNoteID, err
-	}
-	return NoteID(id), nil
+	return NoteID(data), nil
 }
 
 // Upd implements Storage
 func (ac *APIClient) Upd(id NoteID, n Note) (NoteID, error) {
-	url := ac.URL
-	q := url.Query()
-	q.Add("action", "upd")
-	q.Add("id", id.String())
-	url.RawQuery = q.Encode()
-	data := noteToBytes(n)
-	body := io.NopCloser(bytes.NewReader(data))
-	req, _ := http.NewRequest("POST", url.String(), body)
-	req.Header.Add("Notepet-Token", ac.Token)
-	resp, err := ac.HTTPClient.Do(req)
+	body := bytes.NewReader(noteToBytes(n))
+	req := ac.formRequest("POST", map[string]string{"action": "upd", "id": id.String()}, body)
+	data, err := ac.doRequest(req, http.StatusAccepted)
 	if err != nil {
 		return BadNoteID, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusAccepted {
-		return BadNoteID, fmt.Errorf("server returned: %v", resp.Status)
-	}
-	returnid, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return BadNoteID, err
-	}
-	return NoteID(returnid), nil
+	return NoteID(data), nil
 }
 
 // Del implements Storage
 func (ac *APIClient) Del(id NoteID) error {
-	url := ac.URL
-	q := url.Query()
-	q.Add("action", "del")
-	q.Add("id", id.String())
-	url.RawQuery = q.Encode()
-	req, _ := http.NewRequest("DELETE", url.String(), nil)
-	req.Header.Add("Notepet-Token", ac.Token)
-	resp, err := ac.HTTPClient.Do(req)
+	req := ac.formRequest("DELETE", map[string]string{"action": "del", "id": id.String()}, nil)
+	_, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
 		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("server returned: %v", resp.Status)
 	}
 	return nil
 }
 
 // Search implements Storage
 func (ac *APIClient) Search(query string) ([]Note, error) {
-	url := ac.URL
-	q := url.Query()
-	q.Add("action", "search")
-	q.Add("q", query)
-	url.RawQuery = q.Encode()
-	req, _ := http.NewRequest("GET", url.String(), nil)
-	req.Header.Add("Notepet-Token", ac.Token)
-	resp, err := ac.HTTPClient.Do(req)
+	req := ac.formRequest("GET", map[string]string{"action": "search", "q": query}, nil)
+	data, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
 		return []Note{}, err
-	}
-	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return []Note{}, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return []Note{}, fmt.Errorf("server returned: %v", resp.Status)
 	}
 	return bytesToNoteList(data)
 }
 
 //ExportJSON implements Storage
 func (ac *APIClient) ExportJSON() ([]byte, error) {
-	url := ac.URL
-	q := url.Query()
-	q.Add("action", "get")
-	url.RawQuery = q.Encode()
-	req, _ := http.NewRequest("GET", url.String(), nil)
-	req.Header.Add("Notepet-Token", ac.Token)
-	resp, err := ac.HTTPClient.Do(req)
+	req := ac.formRequest("GET", map[string]string{"action": "get"}, nil)
+	data, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
 		return []byte{}, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return []byte{}, fmt.Errorf("server returned: %v", resp.Status)
-	}
-	return io.ReadAll(resp.Body)
+	return data, nil
 }
 
 // Close implements Storage
 func (ac *APIClient) Close() error {
 	return nil
+}
+
+func (ac *APIClient) formRequest(method string, params map[string]string, body io.Reader) *http.Request {
+	url := ac.formUrlFromMap(params)
+	req, _ := http.NewRequest(method, url.String(), body)
+	req.Header.Add("Notepet-Token", ac.Token)
+	return req
+}
+
+func (ac *APIClient) doRequest(r *http.Request, needstatus int) ([]byte, error) {
+	resp, err := ac.HTTPClient.Do(r)
+	if err != nil {
+		return []byte{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != needstatus {
+		return []byte{}, fmt.Errorf("server returned: %v", resp.Status)
+	}
+	return io.ReadAll(resp.Body)
+}
+
+func (ac *APIClient) formUrlFromMap(params map[string]string) url.URL {
+	url := ac.URL
+	q := url.Query()
+	for k, v := range params {
+		q.Add(k, v)
+	}
+	url.RawQuery = q.Encode()
+	return url
 }

@@ -58,6 +58,7 @@ func OpenJSONFileStorage(filename string) (*JSONFileStorage, error) {
 		return nil, err
 	}
 	st.reindex()
+	st.startSyncDaemon(time.Minute * 2)
 	return &st, nil
 }
 
@@ -76,8 +77,8 @@ func CreateJSONFileStorage(filename string) (*JSONFileStorage, error) {
 	var st JSONFileStorage
 	st.Notes = []notepet.Note{}
 	st.filename = filename
-	st.idToIndex = make(map[notepet.NoteID]int)
-	return &st, st.syncToDisk()
+	st.Close()
+	return OpenJSONFileStorage(st.filename)
 }
 
 //Get checks if Note with index i is present in the storage and returns relevant Note
@@ -174,10 +175,12 @@ func (st *JSONFileStorage) Search(want string) ([]notepet.Note, error) {
 
 // Close flushes all notes to disk
 func (st *JSONFileStorage) Close() (err error) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
 	if st.changed {
 		err = st.syncToDisk()
 	}
-	return
+	return nil
 }
 
 // ExportJSON returns a byte array of all notes in JSON format
@@ -192,7 +195,7 @@ func (st *JSONFileStorage) Len() int {
 	return len(st.Notes)
 }
 
-// Less implements sorting from standard library
+// Less implements sort.Interface from standard library
 func (st *JSONFileStorage) Less(i, j int) bool {
 	if st.Notes[i].Sticky && st.Notes[j].Sticky {
 		return st.Notes[i].TimeStamp.After(st.Notes[j].TimeStamp)
@@ -222,4 +225,19 @@ func (st *JSONFileStorage) reindex() {
 	for index, note := range st.Notes {
 		st.idToIndex[note.ID] = index
 	}
+}
+
+func (st *JSONFileStorage) startSyncDaemon(d time.Duration) {
+	go func() {
+		for {
+			timer := time.NewTimer(d)
+			<-timer.C
+			st.mu.Lock()
+			if st.changed {
+				st.syncToDisk()
+				st.changed = false
+			}
+			st.mu.Unlock()
+		}
+	}()
 }

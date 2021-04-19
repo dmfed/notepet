@@ -43,7 +43,7 @@ func main() {
 		flagStorageFile = flag.String("storage", "/usr/local/share/notepetsrv/storage.json", "storage file to use")
 		flagCertFile    = flag.String("cert", "", "certificate file to use")
 		flagKeyFile     = flag.String("key", "", "key file to use")
-		flagAppToken    = flag.String("t", "", "provide token via command line")
+		flagAppToken    = flag.String("t", "", "provide app token via command line")
 		flagVersion     = flag.Bool("v", false, "print version and exit")
 	)
 	flag.Parse()
@@ -53,6 +53,7 @@ func main() {
 		return
 	}
 
+	// Open storage
 	var st notepet.Storage
 	st, err := storage.OpenJSONFileStorage(*flagStorageFile)
 	if err != nil {
@@ -60,6 +61,7 @@ func main() {
 		return
 	}
 
+	// Get tokens
 	var tokens = []string{}
 	if *flagTokensFile != "" {
 		if tks, err := readTokensFromFile(*flagTokensFile); err == nil {
@@ -70,12 +72,14 @@ func main() {
 		tokens = append(tokens, *flagAppToken)
 	}
 
+	// Configure the server
 	srv, err := notepet.NewNotepetServer(*flagIPAddr, *flagPort, st, tokens...)
 	if err != nil {
 		st.Close()
 		return
 	}
 
+	// Fire up the server
 	if *flagCertFile != "" && *flagKeyFile != "" {
 		log.Fatal(srv.ListenAndServeTLS(*flagCertFile, *flagKeyFile))
 	} else {

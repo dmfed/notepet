@@ -23,7 +23,7 @@ var (
 
 // regexes to lookup title, tags and sticky attribute
 var (
-	noteTitleRe  = regexp.MustCompile(prnt.Sprintf(`\n*%v(.+)\b[\t| |\n]*`, noteTitleMarker))
+	noteTitleRe  = regexp.MustCompile(prnt.Sprintf(`\n*%v *(.+)\b[\t| |\n]*`, noteTitleMarker))
 	noteStickyRe = regexp.MustCompile(prnt.Sprintf(`\n+%v[\t| ]*\n*`, noteStickyMarker))
 	noteTagsRe   = regexp.MustCompile(prnt.Sprintf(`\n+%v(.+)\b[\t| ]*%v[\t| |\n]*`, noteTagsStart, noteTagsEnd))
 )
@@ -76,7 +76,8 @@ func processShowCommand(st notepet.Storage, conf *notepetConfig) error {
 	}
 	notes = notes[start:end]
 	for _, note := range notes {
-		note.ID = notepet.NoteID(prnt.Sprintf("%v", start+1))
+		prnt.Use("header").Print(start+1, " ")
+		// note.ID = notepet.NoteID(prnt.Sprintf("%v", start+1))
 		printNote(note, conf)
 		start++
 	}
@@ -194,10 +195,6 @@ func processSearchCommand(st notepet.Storage, conf *notepetConfig) error {
 	return nil
 }
 
-func processShellCommand(st notepet.Storage, conf *notepetConfig) error {
-	return nil
-}
-
 func processExportCommand(st notepet.Storage, conf *notepetConfig) error {
 	data, err := st.ExportJSON()
 	if err == nil {
@@ -223,7 +220,7 @@ func editNote(n notepet.Note, conf *notepetConfig) (note notepet.Note, err error
 	// TODO: Handle errors here ?
 	notebytes := []byte(convertNoteToEditableString(n))
 	tmpFile.Write(notebytes)
-	tmpFile.Close() // Closing and reopening (leep file open and use Seek(0, 0)?)
+	tmpFile.Close() // Closing and reopening (keep file open and use Seek(0, 0)?)
 	err = runEditor(tmpFile.Name(), conf.editor)
 	if err != nil {
 		return
@@ -285,7 +282,7 @@ func runEditor(filename, editorcommand string) error {
 
 func createTempFile() (file *os.File, err error) {
 	homedir, _ := os.UserHomeDir()
-	file, err = os.CreateTemp(homedir, ".notepet*.swp") // will create in $TEMP if homedir empty
+	file, err = os.CreateTemp(homedir, ".notepet*.swp")
 	return
 }
 
@@ -300,33 +297,33 @@ func printNote(note notepet.Note, conf *notepetConfig) {
 
 func printNoteVerbose(note notepet.Note) {
 	var out string
-	out += prnt.Sprint("ID: ") + prnt.Use("header").Sprint(note.ID.String(), " ", note.TimeStamp.Format("02/01/2006 15:04:05"), " ")
+	out += prnt.Sprintf("ID:\t\t%v\n", note.ID.String())
+	out += prnt.Sprintf("Taken:\t\t%v\n", note.TimeStamp.Format("02/01/2006 15:04:05"))
+	out += prnt.Sprintf("Edited:\t\t%v ", note.LastEdited.Format("02/01/2006 15:04:05"))
 	if note.Sticky {
 		out += prnt.Use("sticky").Sprint("STICKY") + "\n"
 	} else {
 		out += "\n"
 	}
 	if note.Title != "" {
-		out += prnt.Sprint("Title: ") + prnt.Use("header").Sprint(note.Title) + "\n"
+		out += prnt.Sprint("Title:\t\t") + prnt.Use("header").Sprint(note.Title) + "\n"
 	}
 	out += prnt.Use("body").Sprint(note.Body) + "\n"
 	if note.Tags != "" {
-		out += prnt.Sprint("Tags: ") + prnt.Use("tags").Sprint(note.Tags) + "\n"
+		out += prnt.Sprint("Tags:\t\t") + prnt.Use("tags").Sprint(note.Tags) + "\n"
 	}
 	prnt.Println(out)
 }
 
 func printNoteRegular(note notepet.Note) {
 	var out string
-	out += prnt.Use("header").Sprintf("%v %v ", note.ID.String(), note.TimeStamp.Format("02/01/2006 15:04:05"))
 	if note.Sticky {
 		out += prnt.Use("sticky").Sprint("STICKY") + " "
 	}
 	if note.Title != "" {
 		out += prnt.Use("header").Sprintln(note.Title)
-	} else {
-		out += "\n"
 	}
+	out += prnt.Use("header").Sprintf("%v\n", note.LastEdited.Format("02/01/2006 15:04:05"))
 	out += prnt.Use("body").Sprintln(note.Body)
 	if note.Tags != "" {
 		out += prnt.Use("tags").Sprintf("%v %v %v\n", noteTagsStart, note.Tags, noteTagsEnd)
@@ -336,19 +333,20 @@ func printNoteRegular(note notepet.Note) {
 
 func parseSliceArg(input string, maxindex int) (start, end int, err error) {
 	indices := strings.Split(input, ":")
+	// allow Python-style slicing in 1-based [x,y) index
 	if len(indices) > 1 {
 		if num, err := strconv.Atoi(indices[0]); err == nil {
-			start = num - 1
+			start = num - 1 // displayed indexes start with 1, so 1 stands for 0 in actual slice
 		}
 		if num, err := strconv.Atoi(indices[1]); err == nil {
-			end = num - 1
+			end = num - 1 // if user wants a slice, last index is not included
 		}
 	} else {
 		if num, err := strconv.Atoi(indices[0]); err == nil {
-			start, end = num-1, num
+			start, end = num-1, num // will yield exact index of one note when we range over resulting indexes
 		}
 	}
-	if start < 0 { // allow Python style slicing e.g.  "-3:"
+	if start < 0 { // allow Python style slicing e.g. user supplied "-5:2"
 		start = maxindex + start + 1
 	}
 	if end < 0 { // e.g. user supplied "1:-3"
@@ -358,7 +356,7 @@ func parseSliceArg(input string, maxindex int) (start, end int, err error) {
 		end = maxindex
 	}
 	if start < 0 || start >= maxindex || start >= end || end < start+1 || end > maxindex {
-		err = prnt.Errorf("error: invalid index or slice supplied %v:%v", start, end)
+		err = prnt.Errorf("error: index out of bounds %v:%v with total %v notes", start, end, maxindex)
 		start, end = 0, 0 // fallback to safe values to make sure program doesn't crash if they are used
 		return
 	}

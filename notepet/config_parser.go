@@ -13,10 +13,6 @@ type notepetConfig struct {
 	token   string
 }
 
-// ReadAndParseConfig returns pointer to notepetConfig
-// It takes path (including filename) as argument and tries to read
-// configuration file. If it fails - it fall back to default
-// configuration
 func readAndParseConfig(filename string) *notepetConfig {
 	config := notepetConfig{editor: "nano"}
 	parsed, err := conf.ParseFile(filename)

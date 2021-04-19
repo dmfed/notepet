@@ -203,6 +203,12 @@ func processExportCommand(st notepet.Storage, conf *notepetConfig) error {
 	return err
 }
 
+func processShellCommand(st notepet.Storage, conf *notepetConfig) error {
+	termtools.ClearScreen()
+
+	return nil
+}
+
 func editNewNote(conf *notepetConfig) (note notepet.Note, err error) {
 	note.Title = " "
 	note.Tags = " "

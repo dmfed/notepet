@@ -8,10 +8,9 @@ import (
 
 func TestHashGenerator(t *testing.T) {
 	stamp := time.Now()
-	h1 := Note{Title: "hello", TimeStamp: stamp}.GenerateID()
-	h2 := Note{Title: "hello", TimeStamp: time.Now()}.GenerateID()
-	h3 := Note{Title: "hello", TimeStamp: stamp}.GenerateID()
-	// fmt.Printf("%v\n%v\n%v\n", h1, h3, h2)
+	h1 := generateID(Note{Title: "hello", TimeStamp: stamp})
+	h2 := generateID(Note{Title: "hello", TimeStamp: time.Now()})
+	h3 := generateID(Note{Title: "hello", TimeStamp: stamp})
 	if h1 == h2 {
 		fmt.Println("hash is not unique")
 		t.Fail()

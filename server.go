@@ -2,7 +2,6 @@ package notepet
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -10,14 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-)
-
-var (
-	// ErrStorageIsNil is returned when nil pointer is passed to NewAPIHandler or
-	// NewNotepetServer
-	ErrStorageIsNil = errors.New("can not initialize handler: stirage is nil")
-	// ErrNoNotesFound is returned when error occurs accessing notes storage or
-	ErrNoNotesFound = errors.New("error: no notes found")
 )
 
 // APIHandler implements http.Handler ready to serve requests to API
@@ -41,14 +32,16 @@ func NewAPIHandler(st Storage, tokens ...string) (*APIHandler, error) {
 }
 
 // NewNotepetServer returns instance of http.Server ready to run on ListenAndServe call
-func NewNotepetServer(ip, port string, st Storage, tokens ...string) (*http.Server, error) {
+func NewNotepetServer(ip, port string, st Storage, handleweb bool, tokens ...string) (*http.Server, error) {
 	srv := &http.Server{Addr: ip + ":" + port}
 	apihandler, err := NewAPIHandler(st, tokens...)
 	if err != nil {
 		return nil, err
 	}
 	http.Handle("/api", apihandler)
-	// http.Handle("/notes", http.HandlerFunc(HandleWeb))
+	if handleweb {
+		http.Handle("/notes", http.HandlerFunc(HandleWeb))
+	}
 	//Handling OS signals
 	interrupts := make(chan os.Signal, 1)
 	signal.Notify(interrupts, syscall.SIGTERM, syscall.SIGINT)

@@ -196,7 +196,7 @@ func processSearchCommand(st notepet.Storage, conf *notepetConfig) error {
 }
 
 func processExportCommand(st notepet.Storage, conf *notepetConfig) error {
-	data, err := st.ExportJSON()
+	data, err := notepet.ExportJSON(st)
 	if err == nil {
 		prnt.Println(string(data))
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 // APIClient represents http client fetching notes from notepet server.
-// It implements notepet.Storage interface.
+// It implements Storage interface.
 type APIClient struct {
 	Token      string
 	HTTPClient *http.Client

@@ -1,36 +1,25 @@
-package storage
+package notepet
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/dmfed/notepet"
-)
-
-var (
-	// ErrNoNotesFound when no notes with requested NoteID are found in the storage
-	ErrNoNotesFound = errors.New("error: no notes with such NoteID")
-	// ErrCanNotAddEmptyNote is returned when trying to Put() note with empty body and title
-	ErrCanNotAddEmptyNote = errors.New("error: can not add empty note")
 )
 
 //JSONFileStorage reads from json file and keeps objects in memory while the program is running
 //Each change of objects list in memory is immediately flushed back to disk.
 //This struct implements the Storage interface.
 type JSONFileStorage struct {
-	Notes     []notepet.Note `json:"notes,omitempty"`
-	idToIndex map[notepet.NoteID]int
+	mu        sync.Mutex
+	Notes     []Note
+	idToIndex map[NoteID]int
 	filename  string
 	changed   bool
-	mu        sync.Mutex
 }
 
 // OpenOrInitJSONFileStorage returns Storage interface is file exists
@@ -53,8 +42,8 @@ func OpenJSONFileStorage(filename string) (*JSONFileStorage, error) {
 	}
 	var st JSONFileStorage
 	st.filename = filename
-	st.idToIndex = make(map[notepet.NoteID]int)
-	if err = json.Unmarshal(data, &st); err != nil {
+	st.idToIndex = make(map[NoteID]int)
+	if err = json.Unmarshal(data, &st.Notes); err != nil {
 		return nil, err
 	}
 	st.reindex()
@@ -75,15 +64,19 @@ func CreateJSONFileStorage(filename string) (*JSONFileStorage, error) {
 		}
 	}
 	var st JSONFileStorage
-	st.Notes = []notepet.Note{}
+	st.Notes = []Note{}
 	st.filename = filename
-	st.Close()
+	if err := st.syncToDisk(); err != nil {
+		// this is probably a write / permissions error
+		// we shouldn't return an unusable storage
+		return nil, err
+	}
 	return OpenJSONFileStorage(st.filename)
 }
 
 //Get checks if Note with index i is present in the storage and returns relevant Note
-func (st *JSONFileStorage) Get(ids ...notepet.NoteID) ([]notepet.Note, error) {
-	notesToReturn := []notepet.Note{}
+func (st *JSONFileStorage) Get(ids ...NoteID) ([]Note, error) {
+	notesToReturn := []Note{}
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	switch len(ids) {
@@ -103,14 +96,14 @@ func (st *JSONFileStorage) Get(ids ...notepet.NoteID) ([]notepet.Note, error) {
 }
 
 // Put adds Note to Storage
-func (st *JSONFileStorage) Put(note notepet.Note) (notepet.NoteID, error) {
+func (st *JSONFileStorage) Put(note Note) (NoteID, error) {
 	if note.Title == "" && note.Body == "" {
-		return notepet.BadNoteID, ErrCanNotAddEmptyNote
+		return BadNoteID, ErrCanNotAddEmptyNote
 	}
 	t := time.Now()
 	note.TimeStamp = t
 	note.LastEdited = t
-	note.ID = note.GenerateID()
+	note.ID = generateID(note)
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	st.Notes = append(st.Notes, note)
@@ -119,18 +112,18 @@ func (st *JSONFileStorage) Put(note notepet.Note) (notepet.NoteID, error) {
 	return note.ID, nil
 }
 
-// Upd removes Note at index i of Storage and places supplied object in its place.
+// Upd replaces Note with id with supplied Note note.
 // Returns error if underlying io operation is unsucessful
-func (st *JSONFileStorage) Upd(id notepet.NoteID, note notepet.Note) (notepet.NoteID, error) {
+func (st *JSONFileStorage) Upd(id NoteID, note Note) (NoteID, error) {
 	if note.Title == "" && note.Body == "" {
-		return notepet.BadNoteID, ErrCanNotAddEmptyNote
+		return BadNoteID, ErrCanNotAddEmptyNote
 	}
 	note.LastEdited = time.Now()
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	index, ok := st.idToIndex[id]
 	if !ok {
-		return notepet.BadNoteID, ErrNoNotesFound
+		return BadNoteID, ErrNoNotesFound
 	}
 	note.ID = id // ID won't change when replacing, only note.TimeEdited
 	note.TimeStamp = st.Notes[index].TimeStamp
@@ -142,7 +135,7 @@ func (st *JSONFileStorage) Upd(id notepet.NoteID, note notepet.Note) (notepet.No
 }
 
 // Del removes Note from Storage
-func (st *JSONFileStorage) Del(id notepet.NoteID) error {
+func (st *JSONFileStorage) Del(id NoteID) error {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	index, ok := st.idToIndex[id]
@@ -157,9 +150,9 @@ func (st *JSONFileStorage) Del(id notepet.NoteID) error {
 
 //Search removes leading and trailing spaces from request and matches the resulting substring
 //against each note in the storage, checking body and title. Search is case insensitive.
-func (st *JSONFileStorage) Search(want string) ([]notepet.Note, error) {
+func (st *JSONFileStorage) Search(want string) ([]Note, error) {
 	want = strings.ToLower(strings.Trim(want, " \n"))
-	var result []notepet.Note
+	var result []Note
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	for i := 0; i < len(st.Notes); i++ {
@@ -187,33 +180,12 @@ func (st *JSONFileStorage) Close() (err error) {
 func (st *JSONFileStorage) ExportJSON() ([]byte, error) {
 	st.mu.Lock()
 	defer st.mu.Unlock()
-	return json.MarshalIndent(st, "", "    ")
-}
-
-// Len returns the number of objects in the Storage
-func (st *JSONFileStorage) Len() int {
-	return len(st.Notes)
-}
-
-// Less implements sort.Interface from standard library
-func (st *JSONFileStorage) Less(i, j int) bool {
-	if st.Notes[i].Sticky && st.Notes[j].Sticky {
-		return st.Notes[i].TimeStamp.After(st.Notes[j].TimeStamp)
-	} else if st.Notes[i].Sticky {
-		return true
-	} else if st.Notes[j].Sticky {
-		return false
-	}
-	return st.Notes[i].TimeStamp.After(st.Notes[j].TimeStamp)
-}
-
-func (st *JSONFileStorage) Swap(i, j int) {
-	st.Notes[i], st.Notes[j] = st.Notes[j], st.Notes[i]
+	return json.MarshalIndent(st.Notes, "", "    ")
 }
 
 //syncToDisk rebuilds json and flushes it do disk.
 func (st *JSONFileStorage) syncToDisk() error {
-	data, err := json.MarshalIndent(st, "", "    ")
+	data, err := json.MarshalIndent(st.Notes, "", "    ")
 	if err != nil {
 		return err
 	}
@@ -221,7 +193,7 @@ func (st *JSONFileStorage) syncToDisk() error {
 }
 
 func (st *JSONFileStorage) reindex() {
-	sort.Sort(st)
+	sortNotes(st.Notes)
 	for index, note := range st.Notes {
 		st.idToIndex[note.ID] = index
 	}

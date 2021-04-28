@@ -8,10 +8,9 @@ import (
 	"strings"
 
 	"github.com/dmfed/notepet"
-	"github.com/dmfed/notepet/storage"
 )
 
-const version string = `notepet v0.1.0
+const version string = `notepetsrv v0.1.0
 Copyright 2021 by Dmitry Fedotov
 Redistributable under MIT license`
 
@@ -55,7 +54,7 @@ func main() {
 
 	// Open storage
 	var st notepet.Storage
-	st, err := storage.OpenJSONFileStorage(*flagStorageFile)
+	st, err := notepet.OpenJSONFileStorage(*flagStorageFile)
 	if err != nil {
 		log.Printf("could not open storage: %v exiting", err)
 		return
@@ -73,7 +72,7 @@ func main() {
 	}
 
 	// Configure the server
-	srv, err := notepet.NewNotepetServer(*flagIPAddr, *flagPort, st, tokens...)
+	srv, err := notepet.NewNotepetServer(*flagIPAddr, *flagPort, st, false, tokens...)
 	if err != nil {
 		st.Close()
 		return

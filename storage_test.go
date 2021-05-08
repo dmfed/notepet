@@ -179,4 +179,11 @@ func Test_SQLiteStorage(t *testing.T) {
 			t.Fail()
 		}
 	}
+	queries := []string{"Test", "test", "tst", "Body", "body"}
+	for _, q := range queries {
+		if res, err := st.Search(q); err != nil || len(res) < 1 {
+			fmt.Println("failed looking for:", q)
+			t.Fail()
+		}
+	}
 }

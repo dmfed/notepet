@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -128,30 +129,26 @@ func (sqls *SQLiteStorage) Upd(id NoteID, n Note) (NoteID, error) {
 
 func (sqls *SQLiteStorage) Del(id NoteID) error {
 	statement := `delete from notes where id = ?`
+	sqls.mu.Lock()
+	defer sqls.mu.Unlock()
 	_, err := sqls.db.Exec(statement, id)
 	return err
 }
 
 func (sqls *SQLiteStorage) Search(query string) ([]Note, error) {
-	statement := `select distinct * from notes where title like "%?%" or body like "%?%" or tags like "%?%" or lastedited like "%?%" or timestamp like "%?%"`
-	notes := []Note{}
-	rows, err := sqls.db.Query(statement, query, query, query, query, query)
+	var result []Note
+	notes, err := sqls.Get()
 	if err != nil {
-		return notes, err
+		return result, err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var n Note
-		//var id string
-		if rows.Scan(&n.ID, &n.Title, &n.Body, &n.Tags, &n.Sticky, &n.TimeStamp, &n.LastEdited); err == nil {
-			//n.ID = NoteID(id)
-			notes = append(notes, n)
-		} else {
-			log.Println(err)
+	query = strings.ToLower(query)
+	for _, note := range notes {
+		if strings.Contains(strings.ToLower(note.String()), query) {
+			result = append(result, note)
 		}
 	}
-	sortNotes(notes)
-	return notes, nil
+	sortNotes(result)
+	return result, nil
 }
 
 func (sqls *SQLiteStorage) Close() error {

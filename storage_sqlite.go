@@ -147,6 +147,9 @@ func (sqls *SQLiteStorage) Search(query string) ([]Note, error) {
 			result = append(result, note)
 		}
 	}
+	if len(result) == 0 {
+		return result, ErrNoNotesFound
+	}
 	sortNotes(result)
 	return result, nil
 }

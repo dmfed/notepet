@@ -237,7 +237,7 @@ func (ah *APIHandler) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	notelist, err := ah.Storage.Search(searchquery)
-	if err != nil || len(notelist) == 0 {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}

@@ -12,9 +12,9 @@ func openStorage(storagename, storagetype string) (notepet.Storage, error) {
 	var err error
 	switch storagetype {
 	case "json":
-		st, err = notepet.OpenOrInitJSONFileStorage(storagename)
+		st, err = notepet.OpenJSONFileStorage(storagename)
 	case "sqlite":
-		st, err = notepet.OpenOrInitSQLiteStorage(storagename)
+		st, err = notepet.OpenSQLiteStorage(storagename)
 	case "network":
 		st, err = nil, fmt.Errorf("Not implemented")
 	default:
@@ -37,7 +37,11 @@ func main() {
 	}
 	dst, err := openStorage(*flagDestination, *flagDestinationType)
 	if err != nil {
-		fmt.Println("falied to open destination storage:", err)
+		fmt.Println("failed to open destination storage:", err)
+	}
+	if src == nil || dst == nil {
+		fmt.Println("failed to open source or destination. exiting...")
+		return
 	}
 	if err := notepet.Migrate(dst, src); err != nil {
 		fmt.Println("failed to migrate notes:", err)

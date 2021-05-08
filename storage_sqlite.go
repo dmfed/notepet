@@ -6,26 +6,19 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
-)
 
-var (
-	statementDBcreate string = `create table notes (id text primary key unique, title text, body text, tags text, sticky boolean, timestamp datetime, lastedited datetime)`
-	statementDBput           = `insert into notes values (?, ?, ?, ?, ?, ?, ?)`
-	statementDBgetOne        = `select * from notes where id = ?`
-	statementDBgetAll        = `select * from notes`
-	statementDBupd           = `update notes set title = ?, body = ?, tags = ?, sticky = ?, lastedited = ? where id = ?`
-	statementDBdel           = `delete from notes where id = ?`
-	statementDBsearch        = `select distinct * from notes where title like ? or body like ? or tags like ? or lastedited like ? or timestamp like ?`
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type SQLiteStorage struct {
-	// mu sync.Mutex
 	db *sql.DB
+	mu sync.Mutex
 }
 
 func OpenOrInitSQLiteStorage(filename string) (Storage, error) {
-	if st, err := openSQLiteStorage(filename, false); err == nil {
+	if st, err := OpenSQLiteStorage(filename); err == nil {
 		return st, nil
 	}
 	return CreateSQLiteStorage(filename)
@@ -59,7 +52,8 @@ func openSQLiteStorage(filename string, initDB bool) (Storage, error) {
 	var sqls SQLiteStorage
 	sqls.db = db
 	if initDB {
-		if _, err := sqls.db.Exec(statementDBcreate); err != nil {
+		statement := `create table notes (id text primary key unique, title text, body text, tags text, sticky boolean, timestamp datetime, lastedited datetime)`
+		if _, err := sqls.db.Exec(statement); err != nil {
 			return nil, err
 		}
 	}
@@ -68,13 +62,17 @@ func openSQLiteStorage(filename string, initDB bool) (Storage, error) {
 }
 
 func (sqls *SQLiteStorage) Get(ids ...NoteID) ([]Note, error) {
+	sqls.mu.Lock()
+	defer sqls.mu.Unlock()
 	var rows *sql.Rows
 	var err error
 	switch {
 	case len(ids) > 0:
-		rows, err = sqls.db.Query(statementDBgetOne, ids[0])
+		statement := `select * from notes where id = ?`
+		rows, err = sqls.db.Query(statement, ids[0])
 	default:
-		rows, err = sqls.db.Query(statementDBgetAll)
+		statement := `select * from notes`
+		rows, err = sqls.db.Query(statement)
 	}
 	notes := []Note{}
 	if err != nil {
@@ -103,7 +101,10 @@ func (sqls *SQLiteStorage) Put(n Note) (NoteID, error) {
 	n.TimeStamp = t
 	n.LastEdited = t
 	n.ID = generateID(n)
-	_, err := sqls.db.Exec(statementDBput, n.ID, n.Title, n.Body, n.Tags, n.Sticky, n.TimeStamp, n.LastEdited)
+	sqls.mu.Lock()
+	defer sqls.mu.Unlock()
+	statement := `insert into notes values (?, ?, ?, ?, ?, ?, ?)`
+	_, err := sqls.db.Exec(statement, n.ID, n.Title, n.Body, n.Tags, n.Sticky, n.TimeStamp, n.LastEdited)
 	if err != nil {
 		return BadNoteID, err
 	}
@@ -111,15 +112,46 @@ func (sqls *SQLiteStorage) Put(n Note) (NoteID, error) {
 }
 
 func (sqls *SQLiteStorage) Upd(id NoteID, n Note) (NoteID, error) {
-	return BadNoteID, nil
+	/* if _, err := sqls.Get(id); err != nil {
+		return BadNoteID, err
+	} */
+	n.LastEdited = time.Now()
+	sqls.mu.Lock()
+	defer sqls.mu.Unlock()
+	statement := `update notes set title = ?, body = ?, tags = ?, sticky = ?, lastedited = ? where id = ?`
+	_, err := sqls.db.Exec(statement, n.Title, n.Body, n.Tags, n.Sticky, n.LastEdited, n.ID)
+	if err != nil {
+		id = BadNoteID
+	}
+	return id, err
 }
 
 func (sqls *SQLiteStorage) Del(id NoteID) error {
-	return nil
+	statement := `delete from notes where id = ?`
+	_, err := sqls.db.Exec(statement, id)
+	return err
 }
 
 func (sqls *SQLiteStorage) Search(query string) ([]Note, error) {
-	return []Note{}, nil
+	statement := `select distinct * from notes where title like ? or body like ? or tags like ? or lastedited like ? or timestamp like ?`
+	notes := []Note{}
+	rows, err := sqls.db.Query(statement, query, query, query, query, query)
+	if err != nil {
+		return notes, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var n Note
+		//var id string
+		if rows.Scan(&n.ID, &n.Title, &n.Body, &n.Tags, &n.Sticky, &n.TimeStamp, &n.LastEdited); err == nil {
+			//n.ID = NoteID(id)
+			notes = append(notes, n)
+		} else {
+			log.Println(err)
+		}
+	}
+	sortNotes(notes)
+	return notes, nil
 }
 
 func (sqls *SQLiteStorage) Close() error {

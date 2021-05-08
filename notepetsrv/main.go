@@ -39,7 +39,7 @@ func main() {
 		flagIPAddr      = flag.String("ip", "127.0.0.1", "ip address to listen on")
 		flagPort        = flag.String("port", "10000", "port to listen on")
 		flagTokensFile  = flag.String("tokens", "/usr/local/share/notepetsrv/tokens.conf", "tokens file to use")
-		flagStorageFile = flag.String("storage", "/usr/local/share/notepetsrv/storage.json", "storage file to use")
+		flagStorageFile = flag.String("storage", "/usr/local/share/notepetsrv/notes.db", "storage file to use")
 		flagCertFile    = flag.String("cert", "", "certificate file to use")
 		flagKeyFile     = flag.String("key", "", "key file to use")
 		flagAppToken    = flag.String("t", "", "provide app token via command line")
@@ -54,7 +54,7 @@ func main() {
 
 	// Open storage
 	var st notepet.Storage
-	st, err := notepet.OpenJSONFileStorage(*flagStorageFile)
+	st, err := notepet.OpenSQLiteStorage(*flagStorageFile)
 	if err != nil {
 		log.Printf("could not open storage: %v exiting", err)
 		return

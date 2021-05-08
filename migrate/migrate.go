@@ -12,9 +12,9 @@ func openStorage(storagename, storagetype string) (notepet.Storage, error) {
 	var err error
 	switch storagetype {
 	case "json":
-		st, err = notepet.OpenJSONFileStorage(storagename)
+		st, err = notepet.OpenOrInitJSONFileStorage(storagename)
 	case "sqlite":
-		st, err = notepet.OpenSQLiteStorage(storagename)
+		st, err = notepet.OpenOrInitSQLiteStorage(storagename)
 	case "network":
 		st, err = nil, fmt.Errorf("Not implemented")
 	default:

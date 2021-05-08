@@ -133,7 +133,7 @@ func (sqls *SQLiteStorage) Del(id NoteID) error {
 }
 
 func (sqls *SQLiteStorage) Search(query string) ([]Note, error) {
-	statement := `select distinct * from notes where title like ? or body like ? or tags like ? or lastedited like ? or timestamp like ?`
+	statement := `select distinct * from notes where title like "%?%" or body like "%?%" or tags like "%?%" or lastedited like "%?%" or timestamp like "%?%"`
 	notes := []Note{}
 	rows, err := sqls.db.Query(statement, query, query, query, query, query)
 	if err != nil {

@@ -34,13 +34,11 @@ func main() {
 	src, err := openStorage(*flagSource, *flagSourceType)
 	if err != nil {
 		fmt.Println("failed to open source storage:", err)
+		return
 	}
 	dst, err := openStorage(*flagDestination, *flagDestinationType)
 	if err != nil {
 		fmt.Println("failed to open destination storage:", err)
-	}
-	if src == nil || dst == nil {
-		fmt.Println("failed to open source or destination. exiting...")
 		return
 	}
 	if err := notepet.Migrate(dst, src); err != nil {

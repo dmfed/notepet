@@ -133,7 +133,7 @@ func Test_SQLiteStorage(t *testing.T) {
 		fmt.Println("could not create test.db:", err)
 		t.Fail()
 	}
-	defer os.Remove("test.db")
+	defer os.Remove(testDBfile)
 	defer st.Close()
 
 	notes := getTestNotes()
@@ -186,4 +186,14 @@ func Test_SQLiteStorage(t *testing.T) {
 			t.Fail()
 		}
 	}
+}
+
+func TestSqliteStorageConcurretly(t *testing.T) {
+	st, err := OpenOrInitSQLiteStorage(testDBfile)
+	if err != nil {
+		fmt.Println("could not create test.db:", err)
+		t.Fail()
+	}
+	defer os.Remove(testDBfile)
+	defer st.Close()
 }

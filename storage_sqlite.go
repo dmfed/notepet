@@ -63,8 +63,6 @@ func openSQLiteStorage(filename string, initDB bool) (Storage, error) {
 }
 
 func (sqls *SQLiteStorage) Get(ids ...NoteID) ([]Note, error) {
-	sqls.mu.Lock()
-	defer sqls.mu.Unlock()
 	var rows *sql.Rows
 	var err error
 	switch {
@@ -102,8 +100,6 @@ func (sqls *SQLiteStorage) Put(n Note) (NoteID, error) {
 	n.TimeStamp = t
 	n.LastEdited = t
 	n.ID = generateID(n)
-	sqls.mu.Lock()
-	defer sqls.mu.Unlock()
 	statement := `insert into notes values (?, ?, ?, ?, ?, ?, ?)`
 	_, err := sqls.db.Exec(statement, n.ID, n.Title, n.Body, n.Tags, n.Sticky, n.TimeStamp, n.LastEdited)
 	if err != nil {
@@ -117,8 +113,6 @@ func (sqls *SQLiteStorage) Upd(id NoteID, n Note) (NoteID, error) {
 		return BadNoteID, err
 	} */
 	n.LastEdited = time.Now()
-	sqls.mu.Lock()
-	defer sqls.mu.Unlock()
 	statement := `update notes set title = ?, body = ?, tags = ?, sticky = ?, lastedited = ? where id = ?`
 	_, err := sqls.db.Exec(statement, n.Title, n.Body, n.Tags, n.Sticky, n.LastEdited, n.ID)
 	if err != nil {
@@ -129,8 +123,6 @@ func (sqls *SQLiteStorage) Upd(id NoteID, n Note) (NoteID, error) {
 
 func (sqls *SQLiteStorage) Del(id NoteID) error {
 	statement := `delete from notes where id = ?`
-	sqls.mu.Lock()
-	defer sqls.mu.Unlock()
 	_, err := sqls.db.Exec(statement, id)
 	return err
 }

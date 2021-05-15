@@ -46,7 +46,7 @@ func (psql *PostgresStorage) Get(ids ...NoteID) ([]Note, error) {
 	var err error
 	switch {
 	case len(ids) > 0:
-		statement := `select * from notes where id = ?`
+		statement := `select * from notes where id = $1`
 		rows, err = psql.db.Query(statement, ids[0])
 	default:
 		statement := `select * from notes`
@@ -79,7 +79,7 @@ func (psql *PostgresStorage) Put(n Note) (NoteID, error) {
 	n.TimeStamp = t
 	n.LastEdited = t
 	n.ID = generateID(n)
-	statement := `insert into notes values (?, ?, ?, ?, ?, ?, ?)`
+	statement := `insert into notes values ($1, $2, $3, $4, $5, $6, $7)`
 	_, err := psql.db.Exec(statement, n.ID, n.Title, n.Body, n.Tags, n.Sticky, n.TimeStamp, n.LastEdited)
 	if err != nil {
 		return BadNoteID, err
@@ -92,7 +92,7 @@ func (psql *PostgresStorage) Upd(id NoteID, n Note) (NoteID, error) {
 		return BadNoteID, err
 	} */
 	n.LastEdited = time.Now()
-	statement := `update notes set title = ?, body = ?, tags = ?, sticky = ?, lastedited = ? where id = ?`
+	statement := `update notes set title = $1, body = $2, tags = $3, sticky = $4, lastedited = $5 where id = $6`
 	_, err := psql.db.Exec(statement, n.Title, n.Body, n.Tags, n.Sticky, n.LastEdited, n.ID)
 	if err != nil {
 		id = BadNoteID
@@ -101,7 +101,7 @@ func (psql *PostgresStorage) Upd(id NoteID, n Note) (NoteID, error) {
 }
 
 func (psql *PostgresStorage) Del(id NoteID) error {
-	statement := `delete from notes where id = ?`
+	statement := `delete from notes where id = $1`
 	_, err := psql.db.Exec(statement, id)
 	return err
 }

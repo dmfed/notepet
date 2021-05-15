@@ -188,6 +188,73 @@ func Test_SQLiteStorage(t *testing.T) {
 	}
 }
 
+func Test_PotgresStorage(t *testing.T) {
+	st, err := OpenPostgresStorage("127.0.0.1", "5432", "notepet", "notepet", "notepet")
+	if err != nil {
+		fmt.Println("could not connect to database:", err)
+		t.Fail()
+	}
+	defer st.Close()
+
+	notes := getTestNotes()
+	var ids []NoteID
+	for _, note := range notes {
+		id, err := st.Put(note)
+		if err != nil {
+			fmt.Println("Failed to put note into PostgresStorage:", err)
+			t.Fail()
+		} else {
+			ids = append(ids, id)
+		}
+	}
+	received, err := st.Get()
+	if err != nil {
+		fmt.Println("Could not get all notes from PostgresStorage:", err)
+		t.Fail()
+	}
+	for i, note := range received {
+		if note.Title != notes[len(notes)-1-i].Title || note.Body != notes[len(notes)-1-i].Body {
+			fmt.Println("Notes do not match")
+			t.Fail()
+		}
+	}
+	for i, id := range ids {
+		n, err := st.Get(id)
+		if err != nil {
+			fmt.Println("error getting note ny ID:", err)
+			t.Fail()
+		}
+		if n[0].Title != notes[i].Title || n[0].Body != notes[i].Body || n[0].Tags != notes[i].Tags {
+			fmt.Println("got wrong note by ID")
+			t.Fail()
+		}
+	}
+	for _, note := range notes {
+		if _, err := st.Search(note.Title); err != nil {
+			fmt.Println("PostgresStorage failed to search existing note by Title")
+			t.Fail()
+		}
+		if _, err := st.Search(note.Body); err != nil {
+			fmt.Println("PostgresStorage failed to search existing note by Body")
+			t.Fail()
+		}
+	}
+	queries := []string{"Test", "test", "tst", "Body", "body"}
+	for _, q := range queries {
+		if res, err := st.Search(q); err != nil || len(res) < 1 {
+			fmt.Println("failed looking for:", q)
+			t.Fail()
+		}
+	}
+	for _, id := range ids {
+		if err := st.Del(id); err != nil {
+			fmt.Println("Could not delete existing note")
+			t.Fail()
+		}
+	}
+}
+
+/*
 func TestSqliteStorageConcurretly(t *testing.T) {
 	st, err := OpenOrInitSQLiteStorage(testDBfile)
 	if err != nil {
@@ -197,3 +264,4 @@ func TestSqliteStorageConcurretly(t *testing.T) {
 	defer os.Remove(testDBfile)
 	defer st.Close()
 }
+*/

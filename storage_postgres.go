@@ -93,7 +93,7 @@ func (psql *PostgresStorage) Upd(id NoteID, n Note) (NoteID, error) {
 	} */
 	n.LastEdited = time.Now()
 	statement := `update notes set title = $1, body = $2, tags = $3, sticky = $4, lastedited = $5 where id = $6`
-	_, err := psql.db.Exec(statement, n.Title, n.Body, n.Tags, n.Sticky, n.LastEdited, n.ID)
+	_, err := psql.db.Exec(statement, n.Title, n.Body, n.Tags, n.Sticky, n.LastEdited, id)
 	if err != nil {
 		id = BadNoteID
 	}

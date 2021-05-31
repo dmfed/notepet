@@ -49,12 +49,90 @@ func getTestNotes() []Note {
 	return notes
 }
 
-var (
-	testfile   = "./test.json"
-	testDBfile = "./test.db"
-)
+func testStorage(t *testing.T, st Storage) {
+	defer st.Close()
+	notes := getTestNotes()
+	var ids []NoteID
+	for _, note := range notes {
+		id, err := st.Put(note)
+		if err != nil {
+			fmt.Println("storage failed to put note:", err)
+			t.Fail()
+		} else {
+			ids = append(ids, id)
+		}
+	}
+	received, err := st.Get()
+	if err != nil {
+		fmt.Println("storage failed to get all notes:", err)
+		t.Fail()
+	}
+	for i, note := range received {
+		if note.Title != notes[len(notes)-1-i].Title || note.Body != notes[len(notes)-1-i].Body {
+			fmt.Println("notes recevied from storage do not match original")
+			t.Fail()
+		}
+	}
+	for i, id := range ids {
+		n, err := st.Get(id)
+		if err != nil {
+			fmt.Println("error getting existing note ny ID:", err)
+			t.Fail()
+		}
+		if n[0].Title != notes[i].Title || n[0].Body != notes[i].Body || n[0].Tags != notes[i].Tags {
+			fmt.Println("got wrong note by ID")
+			t.Fail()
+		}
+	}
+	for _, note := range notes {
+		if _, err := st.Search(note.Title); err != nil {
+			fmt.Println("storage failed to search existing note by Title")
+			t.Fail()
+		}
+		if _, err := st.Search(note.Body); err != nil {
+			fmt.Println("storage failed to search existing note by Body")
+			t.Fail()
+		}
+	}
+	queries := []string{"Test", "test", "tst", "Body", "body"}
+	for _, q := range queries {
+		if res, err := st.Search(q); err != nil || len(res) < 1 {
+			fmt.Println("failed looking for:", q)
+			t.Fail()
+		}
+	}
+	updID, err := st.Upd(received[0].ID, received[1])
+	if err != nil {
+		fmt.Println("failed to update existing note with err:", err)
+		t.Fail()
+	}
+	updated, err := st.Get(updID)
+	if err != nil {
+		fmt.Println("failed to get updated note by new id", err)
+		t.Fail()
+	}
+	if updated[0].Title != received[1].Title || updated[0].Body != received[1].Body {
+		fmt.Println("updated note differs from original")
+		fmt.Println("updated:", updated[0])
+		fmt.Println("expected:", received[1])
+		t.Fail()
+	}
+	toDelete, _ := st.Get()
+	var deleteErr error
+	for _, n := range toDelete {
+		if err := st.Del(n.ID); err != nil {
+			deleteErr = err
+		}
+	}
+	if deleteErr != nil {
+		fmt.Println("storage failed to delete one or more existing notes")
+		t.Fail()
+	}
+}
 
-func TestJSONStoragePutsAndGetsSameBack(t *testing.T) {
+func Test_JSONStoragePutsAndGetsSameBack(t *testing.T) {
+	fmt.Println("Testing JSON Storage")
+	testfile := "./test.json"
 	if _, err := os.Stat(testfile); err == nil {
 		os.Remove(testfile)
 	}
@@ -66,61 +144,12 @@ func TestJSONStoragePutsAndGetsSameBack(t *testing.T) {
 	}
 	defer os.Remove(testfile)
 	defer st.Close()
-
-	original := getTestNotes()
-	var ids []NoteID
-	for i := len(original) - 1; i >= 0; i-- {
-		// Putting in reverse order, because notes will be sorted by timestamp
-		id, err := st.Put(original[i])
-		if err != nil {
-			fmt.Println(err)
-			t.Fail()
-		} else {
-			ids = append(ids, id)
-		}
-	}
-
-	extracted, err := st.Get()
-	if len(extracted) != len(original) {
-		fmt.Printf("extracted != original, expected: %v, got: %v\n", len(extracted), len(original))
-		t.Fail()
-	}
-	if err != nil {
-		fmt.Printf("st.Get() returned: %v\n", err)
-		t.Fail()
-	}
-
-	for i := 0; i < len(original); i++ {
-		if original[i].Body != extracted[i].Body || original[i].Title != extracted[i].Title {
-			fmt.Println("failed comparing original and extracted")
-			t.Fail()
-		}
-	}
-
-	for i, id := range ids {
-		n, err := st.Get(id)
-		if err != nil {
-			fmt.Println("error getting existing note")
-			t.Fail()
-		}
-		if n[0].Title != original[len(original)-i-1].Title || n[0].Body != original[len(original)-i-1].Body {
-			fmt.Println("Get returned wrong note")
-			t.Fail()
-		}
-	}
-	for _, note := range original {
-		if _, err := st.Search(note.Title); err != nil {
-			fmt.Println("Failed to search existing note by Title")
-			t.Fail()
-		}
-		if _, err := st.Search(note.Body); err != nil {
-			fmt.Println("Failed to search existing note by Body")
-			t.Fail()
-		}
-	}
+	testStorage(t, st)
 }
 
 func Test_SQLiteStorage(t *testing.T) {
+	fmt.Println("Testing SQLite Storage")
+	testDBfile := "./test.db"
 	if _, err := OpenSQLiteStorage("noexistent"); err == nil {
 		fmt.Println("OpenSQLiteStorage creates file when not needed")
 		t.Fail()
@@ -135,123 +164,18 @@ func Test_SQLiteStorage(t *testing.T) {
 	}
 	defer os.Remove(testDBfile)
 	defer st.Close()
-
-	notes := getTestNotes()
-	var ids []NoteID
-	for _, note := range notes {
-		id, err := st.Put(note)
-		if err != nil {
-			fmt.Println("Failed to put note into SQLite Storage:", err)
-			t.Fail()
-		} else {
-			ids = append(ids, id)
-		}
-	}
-	received, err := st.Get()
-	if err != nil {
-		fmt.Println("Could not get all notes:", err)
-		t.Fail()
-	}
-	for i, note := range received {
-		if note.Title != notes[len(notes)-1-i].Title || note.Body != notes[len(notes)-1-i].Body {
-			fmt.Println("Notes do not match")
-			t.Fail()
-		}
-	}
-	for i, id := range ids {
-		n, err := st.Get(id)
-		if err != nil {
-			fmt.Println("error getting note ny ID:", err)
-			t.Fail()
-		}
-		if n[0].Title != notes[i].Title || n[0].Body != notes[i].Body || n[0].Tags != notes[i].Tags {
-			fmt.Println("got wrong note by ID")
-			t.Fail()
-		}
-	}
-	for _, note := range notes {
-		if _, err := st.Search(note.Title); err != nil {
-			fmt.Println("SQLite storage failed to search existing note by Title")
-			t.Fail()
-		}
-		if _, err := st.Search(note.Body); err != nil {
-			fmt.Println("SQLite storage failed to search existing note by Body")
-			t.Fail()
-		}
-	}
-	queries := []string{"Test", "test", "tst", "Body", "body"}
-	for _, q := range queries {
-		if res, err := st.Search(q); err != nil || len(res) < 1 {
-			fmt.Println("failed looking for:", q)
-			t.Fail()
-		}
-	}
+	testStorage(t, st)
 }
 
-func Test_PotgresStorage(t *testing.T) {
+func Test_PostgresStorage(t *testing.T) {
+	fmt.Println("Testing Postgres Storage")
 	st, err := OpenPostgresStorage("127.0.0.1", "5432", "notepet", "notepet", "notepet")
 	if err != nil {
 		fmt.Println("could not connect to database:", err)
 		t.Fail()
 	}
 	defer st.Close()
-
-	notes := getTestNotes()
-	var ids []NoteID
-	for _, note := range notes {
-		id, err := st.Put(note)
-		if err != nil {
-			fmt.Println("Failed to put note into PostgresStorage:", err)
-			t.Fail()
-		} else {
-			ids = append(ids, id)
-		}
-	}
-	received, err := st.Get()
-	if err != nil {
-		fmt.Println("Could not get all notes from PostgresStorage:", err)
-		t.Fail()
-	}
-	for i, note := range received {
-		if note.Title != notes[len(notes)-1-i].Title || note.Body != notes[len(notes)-1-i].Body {
-			fmt.Println("Notes do not match")
-			t.Fail()
-		}
-	}
-	for i, id := range ids {
-		n, err := st.Get(id)
-		if err != nil {
-			fmt.Println("error getting note ny ID:", err)
-			t.Fail()
-		}
-		if n[0].Title != notes[i].Title || n[0].Body != notes[i].Body || n[0].Tags != notes[i].Tags {
-			fmt.Println("got wrong note by ID")
-			t.Fail()
-		}
-	}
-	for _, note := range notes {
-		if _, err := st.Search(note.Title); err != nil {
-			fmt.Println("PostgresStorage failed to search existing note by Title")
-			t.Fail()
-		}
-		if _, err := st.Search(note.Body); err != nil {
-			fmt.Println("PostgresStorage failed to search existing note by Body")
-			t.Fail()
-		}
-	}
-	queries := []string{"Test", "test", "tst", "Body", "body"}
-	for _, q := range queries {
-		if res, err := st.Search(q); err != nil || len(res) < 1 {
-			fmt.Println("failed looking for:", q)
-			t.Fail()
-		}
-	}
-	for _, id := range ids {
-		if err := st.Del(id); err != nil {
-			fmt.Println("Could not delete existing note")
-			t.Fail()
-		}
-	}
+	testStorage(t, st)
 }
 
 /*

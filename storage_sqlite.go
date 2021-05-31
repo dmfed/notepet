@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -15,7 +14,6 @@ import (
 
 type SQLiteStorage struct {
 	db *sql.DB
-	mu sync.Mutex
 }
 
 func OpenOrInitSQLiteStorage(filename string) (Storage, error) {
@@ -114,7 +112,7 @@ func (sqls *SQLiteStorage) Upd(id NoteID, n Note) (NoteID, error) {
 	} */
 	n.LastEdited = time.Now()
 	statement := `update notes set title = ?, body = ?, tags = ?, sticky = ?, lastedited = ? where id = ?`
-	_, err := sqls.db.Exec(statement, n.Title, n.Body, n.Tags, n.Sticky, n.LastEdited, n.ID)
+	_, err := sqls.db.Exec(statement, n.Title, n.Body, n.Tags, n.Sticky, n.LastEdited, id)
 	if err != nil {
 		id = BadNoteID
 	}

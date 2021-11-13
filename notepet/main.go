@@ -19,7 +19,7 @@ var prnt = termtools.PrintSuite{}
 func displayHelpLong() { //TODO: write proper help
 	name := os.Args[0]
 	prnt.Printf(`Usage: %v <options> <command> <arguments>
-  Commands are: get, put, del, show, new, edit, search
+  Commands are: show, put, new, sticky, del, edit, search, export
 	
   Example: 
   Argument to get and del commands is index of Note to printout or delete

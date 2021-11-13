@@ -23,9 +23,9 @@ var (
 
 // regexes to lookup title, tags and sticky attribute
 var (
-	noteTitleRe  = regexp.MustCompile(prnt.Sprintf(`\n*%v *(.+)\b[\t| |\n]*`, noteTitleMarker))
-	noteStickyRe = regexp.MustCompile(prnt.Sprintf(`\n+%v[\t| ]*\n*`, noteStickyMarker))
-	noteTagsRe   = regexp.MustCompile(prnt.Sprintf(`\n+%v(.+)\b[\t| ]*%v[\t| |\n]*`, noteTagsStart, noteTagsEnd))
+	noteTitleRe  = regexp.MustCompile(prnt.Sprintf(`\n*%v *(.+)\n`, noteTitleMarker))
+	noteStickyRe = regexp.MustCompile(prnt.Sprintf(`\n+%v\n*`, noteStickyMarker))
+	noteTagsRe   = regexp.MustCompile(prnt.Sprintf(`\n+%v(.+)%v\n*`, noteTagsStart, noteTagsEnd))
 )
 
 // default colors to set up termtools printers
@@ -46,7 +46,8 @@ var (
 		"edit":   processEditCommand,
 		"search": processSearchCommand,
 		"export": processExportCommand,
-		"shell":  processShellCommand}
+		"shell":  processShellCommand,
+	}
 )
 
 // runCLI processes input from command line.

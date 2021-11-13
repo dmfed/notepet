@@ -2,7 +2,6 @@ package notepet
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -61,11 +60,11 @@ func initTestHandler(s Storage) http.Handler {
 func Test_APIHandlerSearch(t *testing.T) {
 	s, err := initFakeStorage()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Fail()
 	}
 	hndlr := initTestHandler(s)
-	req := httptest.NewRequest("GET", "http://example.com/api?action=search&q=test", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/api?action=search&q=test", nil)
 	req.Header.Add("Notepet-Token", "test")
 	w := httptest.NewRecorder()
 	hndlr.ServeHTTP(w, req)
@@ -74,14 +73,14 @@ func Test_APIHandlerSearch(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 	var notes []Note
 	if err := json.Unmarshal(body, &notes); err != nil {
-		fmt.Println("failed to unmarshal response notes")
+		t.Log("failed to unmarshal response notes")
 		t.Fail()
 	}
 	for i := range notes {
 		if notes[i] != s.Notes[i] {
-			fmt.Println(resp.StatusCode)
-			fmt.Println(resp.Header.Get("Content-Type"))
-			fmt.Println(string(body))
+			t.Log(resp.StatusCode)
+			t.Log(resp.Header.Get("Content-Type"))
+			t.Log(string(body))
 			t.Fail()
 		}
 	}

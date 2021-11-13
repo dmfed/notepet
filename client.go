@@ -33,9 +33,9 @@ func NewAPIClient(ip, port, path, apptoken string) (Storage, error) {
 func (ac *APIClient) Get(ids ...NoteID) ([]Note, error) {
 	var req *http.Request
 	if len(ids) > 0 {
-		req = ac.formRequest("GET", map[string]string{"action": "get", "id": ids[0].String()}, nil)
+		req = ac.formRequest(http.MethodGet, map[string]string{"action": "get", "id": ids[0].String()}, nil)
 	} else {
-		req = ac.formRequest("GET", map[string]string{"action": "get"}, nil)
+		req = ac.formRequest(http.MethodGet, map[string]string{"action": "get"}, nil)
 	}
 	data, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
@@ -47,7 +47,7 @@ func (ac *APIClient) Get(ids ...NoteID) ([]Note, error) {
 // Put implements Storage
 func (ac *APIClient) Put(n Note) (NoteID, error) {
 	body := bytes.NewReader(noteToBytes(n))
-	req := ac.formRequest("PUT", map[string]string{"action": "new"}, body)
+	req := ac.formRequest(http.MethodPut, map[string]string{"action": "new"}, body)
 	data, err := ac.doRequest(req, http.StatusCreated)
 	if err != nil {
 		return BadNoteID, err
@@ -58,7 +58,7 @@ func (ac *APIClient) Put(n Note) (NoteID, error) {
 // Upd implements Storage
 func (ac *APIClient) Upd(id NoteID, n Note) (NoteID, error) {
 	body := bytes.NewReader(noteToBytes(n))
-	req := ac.formRequest("POST", map[string]string{"action": "upd", "id": id.String()}, body)
+	req := ac.formRequest(http.MethodPost, map[string]string{"action": "upd", "id": id.String()}, body)
 	data, err := ac.doRequest(req, http.StatusAccepted)
 	if err != nil {
 		return BadNoteID, err
@@ -68,7 +68,7 @@ func (ac *APIClient) Upd(id NoteID, n Note) (NoteID, error) {
 
 // Del implements Storage
 func (ac *APIClient) Del(id NoteID) error {
-	req := ac.formRequest("DELETE", map[string]string{"action": "del", "id": id.String()}, nil)
+	req := ac.formRequest(http.MethodDelete, map[string]string{"action": "del", "id": id.String()}, nil)
 	_, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func (ac *APIClient) Del(id NoteID) error {
 
 // Search implements Storage
 func (ac *APIClient) Search(query string) ([]Note, error) {
-	req := ac.formRequest("GET", map[string]string{"action": "search", "q": query}, nil)
+	req := ac.formRequest(http.MethodGet, map[string]string{"action": "search", "q": query}, nil)
 	data, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
 		return []Note{}, err
@@ -88,7 +88,7 @@ func (ac *APIClient) Search(query string) ([]Note, error) {
 
 //ExportJSON implements Storage
 func (ac *APIClient) ExportJSON() ([]byte, error) {
-	req := ac.formRequest("GET", map[string]string{"action": "get"}, nil)
+	req := ac.formRequest(http.MethodGet, map[string]string{"action": "get"}, nil)
 	data, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
 		return []byte{}, err

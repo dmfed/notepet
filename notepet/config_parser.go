@@ -10,11 +10,12 @@ type notepetConfig struct {
 	color   bool
 	server  string
 	port    string
+	path    string
 	token   string
 }
 
 func readAndParseConfig(filename string) *notepetConfig {
-	config := notepetConfig{editor: "nano"}
+	config := notepetConfig{editor: "nano", path: "/notes"}
 	parsed, err := conf.ParseFile(filename)
 	if err != nil {
 		return &config
@@ -27,5 +28,6 @@ func readAndParseConfig(filename string) *notepetConfig {
 	config.token = parsed.Get("token").String()
 	config.verbose = parsed.HasOption("verbose")
 	config.color = parsed.HasOption("color")
+	config.path = parsed.Get("path").String()
 	return &config
 }

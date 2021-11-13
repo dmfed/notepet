@@ -49,6 +49,7 @@ func main() {
 		flagVersion    = flag.Bool("version", false, "Print version and exit")
 		flagIP         = flag.String("ip", "", "ip address to connect to")
 		flagPort       = flag.String("port", "", "port to connect to")
+		flagAPIpath    = flag.String("path", "", "api base path")
 		// flagUpdateIDs  = flag.Bool("generate", false, "recalculate IDs of all notes")
 	)
 	flag.Usage = displayHelpLong
@@ -75,7 +76,10 @@ func main() {
 	if *flagPort != "" {
 		conf.port = *flagPort
 	}
-	storage, err := notepet.NewAPIClient(conf.server, conf.port, conf.token)
+	if *flagAPIpath != "" {
+		conf.path = *flagAPIpath
+	}
+	storage, err := notepet.NewAPIClient(conf.server, conf.port, conf.path, conf.token)
 	if err != nil {
 		prnt.Printf("error initializing api client: %v", err)
 		return

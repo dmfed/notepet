@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // APIClient represents http client fetching notes from notepet server.
@@ -18,13 +19,13 @@ type APIClient struct {
 
 // NewAPIClient returns instance of APIClient configured
 // to send requests to specified ip address
-func NewAPIClient(ip, port, apptoken string) (Storage, error) {
+func NewAPIClient(ip, port, path, apptoken string) (Storage, error) {
 	var ac APIClient
 	ac.Token = apptoken
 	ac.HTTPClient = &http.Client{}
 	ac.URL = url.URL{Scheme: "http",
 		Host: ip + ":" + port,
-		Path: "/api"}
+		Path: "/" + strings.Trim(path, "/")}
 	return &ac, nil
 }
 

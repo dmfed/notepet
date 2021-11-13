@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -17,13 +18,17 @@ type APIClient struct {
 	URL        url.URL
 }
 
+var hostnameRE = regexp.MustCompile(`http://|https://`)
+
 // NewAPIClient returns instance of APIClient configured
 // to send requests to specified ip address
 func NewAPIClient(ip, port, path, apptoken string) (Storage, error) {
 	var ac APIClient
 	ac.Token = apptoken
 	ac.HTTPClient = &http.Client{}
-	ip = strings.TrimLeft(ip, "htps:/") // make sure hostname is not prefixed with http:// or https://
+	if hostnameRE.MatchString(ip) {
+		ip = hostnameRE.ReplaceAllString(ip, "")
+	}
 	ac.URL = url.URL{Scheme: "https",
 		Host: ip + ":" + port,
 		Path: "/" + strings.Trim(path, "/")}

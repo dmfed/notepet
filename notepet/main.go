@@ -9,7 +9,7 @@ import (
 	"github.com/dmfed/termtools"
 )
 
-const version string = `notepet v0.3.0
+const version string = `notepet v0.4.0
 Copyright 2021 by Dmitry Fedotov
 Redistributable under MIT license`
 

@@ -85,27 +85,7 @@ func main() {
 		return
 	}
 	defer storage.Close()
-	/* if *flagUpdateIDs {
-		prnt.Println("updatings ids...")
-		notes, err := storage.Get()
-		if err != nil {
-			prnt.Println("could not fetch notes from storage. Exiting...")
-			return
-		}
-		prnt.Printf("got %v notes", len(notes))
-		for i := len(notes) - 1; i >= 0; i-- {
-			prnt.Println("updating note", i)
-			if err := storage.Del(notes[i].ID); err != nil {
-				prnt.Println(err)
-			}
-			if id, err := storage.Put(notes[i]); err != nil {
-				prnt.Println(err)
-			} else {
-				prnt.Println("put note", i, "id", id)
-			}
-		}
-		return
-	} */
+
 	if err := runCLI(storage, conf); err != nil {
 		prnt.Println(err)
 	}

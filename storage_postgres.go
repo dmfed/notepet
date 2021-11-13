@@ -129,7 +129,3 @@ func (psql *PostgresStorage) Search(query string) ([]Note, error) {
 func (psql *PostgresStorage) Close() error {
 	return psql.db.Close()
 }
-
-func (psql *PostgresStorage) ExportJSON() ([]byte, error) {
-	return []byte{}, nil
-}

@@ -27,7 +27,8 @@ type PostgresStorage struct {
 }
 
 func OpenPostgresStorage(host, port, username, password, dbname string) (Storage, error) {
-	connString := fmt.Sprintf("user=%v password=%v host=%v port=%v database=%v sslmode=disable", username, password, host, port, dbname)
+	// postgres://jack:secret@pg.example.com:5432/mydb?sslmode=verify-ca&pool_max_conns=10
+	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", username, password, host, port, dbname)
 	db, err := sql.Open("pgx", connString)
 	if err != nil {
 		return nil, err

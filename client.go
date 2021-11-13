@@ -23,7 +23,7 @@ func NewAPIClient(ip, port, path, apptoken string) (Storage, error) {
 	var ac APIClient
 	ac.Token = apptoken
 	ac.HTTPClient = &http.Client{}
-	ac.URL = url.URL{Scheme: "http",
+	ac.URL = url.URL{Scheme: "https",
 		Host: ip + ":" + port,
 		Path: "/" + strings.Trim(path, "/")}
 	return &ac, nil

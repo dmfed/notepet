@@ -393,7 +393,7 @@ func setupPrinters() {
 		{Name: "header", Color: printerDefaultNoteHeaderColor},
 		{Name: "sticky", Color: printerDefaultNoteStickyAttrColor, Reversed: true},
 		{Name: "tags", Bold: true},
-		{Name: "body", Color: "white"},
+		{Name: "body", Color: "black"},
 		{Name: "error", Color: "red"}}
 	prnt.Configure(configs...)
 }

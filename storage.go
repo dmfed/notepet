@@ -37,6 +37,10 @@ type Storage interface {
 	Close() error
 }
 
+func NewStorage(conf StorageConfig) (Storage, error) {
+	return nil, nil
+}
+
 // Migrate copies all notes from src (source) Storage
 // to dst (destination) Storage. If succesful the returned
 // error in nil.

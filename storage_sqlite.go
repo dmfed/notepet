@@ -12,6 +12,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const (
+	sqliteDriverName = "sqlite3"
+)
+
 type SQLiteStorage struct {
 	db *sql.DB
 }
@@ -44,7 +48,7 @@ func CreateSQLiteStorage(filename string) (Storage, error) {
 }
 
 func openSQLiteStorage(filename string, initDB bool) (Storage, error) {
-	db, err := sql.Open("sqlite3", filename)
+	db, err := sql.Open(sqliteDriverName, filename)
 	if err != nil {
 		return nil, err
 	}

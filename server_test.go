@@ -53,7 +53,7 @@ func initFakeStorage() (*fakeStorage, error) {
 func initTestHandler(s Storage) http.Handler {
 	tokens := make(map[string]struct{})
 	tokens["test"] = struct{}{}
-	hndlr := APIHandler{Storage: s, Tokens: tokens}
+	hndlr := APIHandler{Storage: s}
 	return &hndlr
 }
 

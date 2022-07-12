@@ -130,23 +130,6 @@ func testStorage(t *testing.T, st Storage) {
 	}
 }
 
-func Test_JSONStoragePutsAndGetsSameBack(t *testing.T) {
-	fmt.Println("Testing JSON Storage")
-	testfile := "./test.json"
-	if _, err := os.Stat(testfile); err == nil {
-		os.Remove(testfile)
-	}
-
-	st, err := OpenOrInitJSONFileStorage(testfile)
-	if err != nil {
-		fmt.Println("could not open or create file:", err)
-		t.FailNow()
-	}
-	defer os.Remove(testfile)
-	defer st.Close()
-	testStorage(t, st)
-}
-
 func Test_SQLiteStorage(t *testing.T) {
 	fmt.Println("Testing SQLite Storage")
 	testDBfile := "./test.db"

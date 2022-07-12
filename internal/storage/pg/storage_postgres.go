@@ -1,4 +1,4 @@
-package notepet
+package pg
 
 import (
 	"database/sql"

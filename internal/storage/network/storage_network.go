@@ -1,4 +1,4 @@
-package notepet
+package network
 
 import (
 	"bytes"
@@ -7,36 +7,38 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strings"
+
+	"github.com/dmfed/notepet/internal/storage"
+	"github.com/dmfed/notepet/model"
 )
 
 // APIClient represents http client fetching notes from notepet server.
 // It implements Storage interface.
 type APIClient struct {
-	Token      string
+	Username   string
+	Password   string
 	HTTPClient *http.Client
-	URL        url.URL
+	URL        *url.URL
 }
 
 var hostnameRE = regexp.MustCompile(`http://|https://`)
 
 // NewAPIClient returns instance of APIClient configured
 // to send requests to specified ip address
-func NewAPIClient(ip, port, path, apptoken string) (Storage, error) {
-	var ac APIClient
-	ac.Token = apptoken
-	ac.HTTPClient = &http.Client{}
-	if hostnameRE.MatchString(ip) {
-		ip = hostnameRE.ReplaceAllString(ip, "")
-	}
-	ac.URL = url.URL{Scheme: "https",
-		Host: ip + ":" + port,
-		Path: "/" + strings.Trim(path, "/")}
-	return &ac, nil
+func NewAPIClient(addr, username, password string) (storage.NoteRepo, error) {
+	var (
+		a   APIClient
+		err error
+	)
+	a.Username = username
+	a.Password = password
+	a.HTTPClient = &http.Client{}
+	a.URL, err = url.Parse(addr)
+	return &a, err
 }
 
 // Get implements Storage
-func (ac *APIClient) Get(ids ...NoteID) ([]Note, error) {
+func (ac *APIClient) Get(ids ...model.NoteID) ([]model.Note, error) {
 	var req *http.Request
 	if len(ids) > 0 {
 		req = ac.formRequest(http.MethodGet, map[string]string{"action": "get", "id": ids[0].String()}, nil)
@@ -45,35 +47,35 @@ func (ac *APIClient) Get(ids ...NoteID) ([]Note, error) {
 	}
 	data, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
-		return []Note{}, err
+		return []model.Note{}, err
 	}
 	return bytesToNoteList(data)
 }
 
 // Put implements Storage
-func (ac *APIClient) Put(n Note) (NoteID, error) {
+func (ac *APIClient) Put(n model.Note) (model.NoteID, error) {
 	body := bytes.NewReader(noteToBytes(n))
 	req := ac.formRequest(http.MethodPut, map[string]string{"action": "new"}, body)
 	data, err := ac.doRequest(req, http.StatusCreated)
 	if err != nil {
 		return BadNoteID, err
 	}
-	return NoteID(data), nil
+	return model.NoteID(data), nil
 }
 
 // Upd implements Storage
-func (ac *APIClient) Upd(id NoteID, n Note) (NoteID, error) {
+func (ac *APIClient) Upd(id model.NoteID, n model.Note) (model.NoteID, error) {
 	body := bytes.NewReader(noteToBytes(n))
 	req := ac.formRequest(http.MethodPost, map[string]string{"action": "upd", "id": id.String()}, body)
 	data, err := ac.doRequest(req, http.StatusAccepted)
 	if err != nil {
 		return BadNoteID, err
 	}
-	return NoteID(data), nil
+	return model.NoteID(data), nil
 }
 
 // Del implements Storage
-func (ac *APIClient) Del(id NoteID) error {
+func (ac *APIClient) Del(id model.NoteID) error {
 	req := ac.formRequest(http.MethodDelete, map[string]string{"action": "del", "id": id.String()}, nil)
 	_, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
@@ -83,11 +85,11 @@ func (ac *APIClient) Del(id NoteID) error {
 }
 
 // Search implements Storage
-func (ac *APIClient) Search(query string) ([]Note, error) {
+func (ac *APIClient) Search(query string) ([]model.Note, error) {
 	req := ac.formRequest(http.MethodGet, map[string]string{"action": "search", "q": query}, nil)
 	data, err := ac.doRequest(req, http.StatusOK)
 	if err != nil {
-		return []Note{}, err
+		return []model.Note{}, err
 	}
 	return bytesToNoteList(data)
 }

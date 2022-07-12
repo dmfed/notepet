@@ -1,4 +1,4 @@
-package notepet
+package config
 
 const (
 	StorageSQLite   StorageType = "sqlite"

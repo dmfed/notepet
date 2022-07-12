@@ -1,4 +1,4 @@
-package notepet
+package storage
 
 import (
 	"encoding/json"

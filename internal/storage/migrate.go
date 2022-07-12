@@ -1,4 +1,4 @@
-package main
+package storage
 
 import (
 	"flag"
@@ -7,12 +7,29 @@ import (
 	"github.com/dmfed/notepet"
 )
 
+// Migrate copies all model.Notes from src (source) Storage
+// to dst (destination) Storage. If succesful the returned
+// error in nil.
+func Migrate(dst, src Storage) error {
+	if src == nil || dst == nil {
+		return ErrStorageIsNil
+	}
+	notes, err := src.Get()
+	if err != nil {
+		return err
+	}
+	for i := len(notes) - 1; i >= 0; i-- {
+		if _, err := dst.Put(notes[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func openStorage(storagename, storagetype string) (notepet.Storage, error) {
 	var st notepet.Storage
 	var err error
 	switch storagetype {
-	case "json":
-		st, err = notepet.OpenOrInitJSONFileStorage(storagename)
 	case "sqlite":
 		st, err = notepet.OpenOrInitSQLiteStorage(storagename)
 	case "network":

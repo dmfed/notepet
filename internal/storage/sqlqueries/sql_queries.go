@@ -51,7 +51,7 @@ var (
 	select noteid from user2notes where userid = $1`
 
 	StatementInsertUserNotes = `
-	insert into user2notes values($1, $2)`  // TODO
+	insert into user2notes values ($1, $2)`  // TODO
 )
 
 func GetNote(db *sql.DB, ids ...model.NoteID) ([]model.Note, error) {
@@ -120,8 +120,9 @@ func NewUser(db *sql.DB, username string) (id model.UserID, err error) {
 	return
 }
 
-func InsertUserNotes(db *sql.DB, id model.UserID, notes []model.NoteID) {
-	// TODO
+func InsertUserNote(db *sql.DB, userID model.UserID, noteID model.NoteID) error {
+	_, err := db.Exec(StatementSelectUserNotes, userID, noteID)
+	return err
 }
 
 func Search(db *sql.DB, ids []model.NoteID, query string) ([]model.Note, error) {

@@ -69,7 +69,9 @@ func (s *SQLiteStorage) NewUser(username string) (model.UserID, error) {
 }
 
 // GetNotes returns IDs of notes belonging to user with UserID id.
-func (s *SQLiteStorage) GetNotes(id model.UserID, offset, limit int) ([]model.NoteID, error)
+func (s *SQLiteStorage) GetNotes(id model.UserID, offset, limit int) ([]model.NoteID, error) {
+	return
+}
 
 // PutNotes adds IDs of notes belonging to user with id.
 func (s *SQLiteStorage) PutNotes(id model.UserID, notes ...model.NoteID) error

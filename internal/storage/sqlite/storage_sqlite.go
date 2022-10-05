@@ -29,7 +29,7 @@ func openSQLiteStorage(filename string) (storage.NoteRepo, error) {
 	}
 
 	db.SetMaxOpenConns(1)
-	_, err = db.Exec(sqlqueries.StatementCreateSQLITETableNotes)
+	_, err = db.Exec(sqlqueries.StatementCreateTableNotes)
 
 	return &SQLiteStorage{db}, err
 }
@@ -70,11 +70,11 @@ func (s *SQLiteStorage) NewUser(username string) (model.UserID, error) {
 
 // GetNotes returns IDs of notes belonging to user with UserID id.
 func (s *SQLiteStorage) GetNotes(id model.UserID, offset, limit int) ([]model.NoteID, error) {
-	return
+	return nil, nil
 }
 
 // PutNotes adds IDs of notes belonging to user with id.
 func (s *SQLiteStorage) PutNotes(id model.UserID, notes ...model.NoteID) error
 
 // DelNotes deletes notes with IDs notes belonging to user with ID id.
-func (s *SQLiteStorage) DelNotes(id model.UserID, notes ...model.NoteID)
+func (s *SQLiteStorage) DelNotes(id model.UserID, notes ...model.NoteID) error

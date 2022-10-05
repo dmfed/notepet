@@ -12,14 +12,28 @@ import (
 
 // Create tables
 var (
-	StatementCreateSQLITETableNotes = `
-	create table if not exists notes (id text primary key unique, title text, body text, tags text, sticky boolean, timestamp datetime, lastedited datetime)`
+	StatementCreateTableNotes = `
+	create table if not exists notes (
+		id text primary key, 
+		title text, 
+		body text, 
+		tags text, 
+		sticky boolean, 
+		timestamp datetime, 
+		lastedited datetime
+	)`
 
-	StatementCreateSQLITEUsersTable = `
-	create table if not exists users (id integer primary key autoincrement, username text unique)`
+	StatementCreateUsersTable = `
+	create table if not exists users (
+		id integer primary key autoincrement, 
+		username text unique
+	)`
 
 	StatementCreateSQLITEUser2NotesTable = `
-	create table if not exists user2notes (userid integer, noteid text unique)`
+	create table if not exists user2notes (
+		userid integer references users(id), 
+		noteid text unique
+	)`
 )
 
 // Note repo

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/dmfed/notepet/model" 
 )
 
 var TestNotes = []byte(`
@@ -43,8 +45,8 @@ var TestNotes = []byte(`
 	}
 ]`)
 
-func getTestNotes() []Note {
-	var notes []Note
+func getTestNotes() []model.Note {
+	var notes []model.Note
 	json.Unmarshal(TestNotes, &notes)
 	return notes
 }
@@ -52,7 +54,7 @@ func getTestNotes() []Note {
 func testStorage(t *testing.T, st Storage) {
 	defer st.Close()
 	notes := getTestNotes()
-	var ids []NoteID
+	var ids []model.NoteID
 	for _, note := range notes {
 		id, err := st.Put(note)
 		if err != nil {
@@ -128,26 +130,6 @@ func testStorage(t *testing.T, st Storage) {
 		fmt.Println("storage failed to delete one or more existing notes")
 		t.Fail()
 	}
-}
-
-func Test_SQLiteStorage(t *testing.T) {
-	fmt.Println("Testing SQLite Storage")
-	testDBfile := "./test.db"
-	if _, err := OpenSQLiteStorage("noexistent"); err == nil {
-		fmt.Println("OpenSQLiteStorage creates file when not needed")
-		t.Fail()
-	}
-	if _, err := os.Stat(testDBfile); err == nil {
-		os.Remove(testDBfile)
-	}
-	st, err := OpenOrInitSQLiteStorage(testDBfile)
-	if err != nil {
-		fmt.Println("could not create test.db:", err)
-		t.Fail()
-	}
-	defer os.Remove(testDBfile)
-	defer st.Close()
-	testStorage(t, st)
 }
 
 func Test_PostgresStorage(t *testing.T) {

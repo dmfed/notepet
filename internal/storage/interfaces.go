@@ -58,5 +58,5 @@ type User2Note interface {
 	PutNotes(id model.UserID, notes ...model.NoteID) error
 
 	// DelNotes deletes notes with IDs notes belonging to user with ID id.
-	DelNotes(id model.UserID, notes ...model.NoteID)
+	DelNotes(id model.UserID, notes ...model.NoteID) error
 }
